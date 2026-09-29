@@ -1,0 +1,243 @@
+package inventory.model;
+
+public class Supplier {
+
+    private String supplierId;
+    private String name;
+    private String email;
+
+    public Supplier(String supplierId, String name, String email) {
+        this.supplierId = supplierId;
+        this.name = name;
+        this.email = email;
+    }
+
+    //return the supplierId
+    public String getSupplierId() {
+        return supplierId;
+    }
+
+    //return the name
+    public String getName() {
+        return name;
+    }
+
+    //return the email
+    public String getEmail() {
+        return email;
+    }
+}
+
+
+package inventory.model;
+
+public class Product {
+
+    private String productId;
+    private String name;
+    private double price;
+    private Supplier supplier;
+
+    public Product(String productId, String name, double price, Supplier supplier) {
+        this.productId = productId;
+        this.name = name;
+        this.price = price;
+        this.supplier = supplier;
+    }
+
+    //return the productId
+    public String getProductId() {
+        return productId;
+    }
+
+    //return the name
+    public String getName() {
+        return name;
+    }
+
+    //return the price
+    public double getPrice() {
+        return price;
+    }
+
+    //return the supplier
+    public Supplier getSupplier() {
+        return supplier;
+    }
+}
+
+
+package inventory.model;
+
+public class InventoryItem {
+
+    private Product product;
+    private int quantity;
+    private int reorderLevel;
+
+    public InventoryItem(Product product, int quantity, int reorderLevel) {
+        this.product = product;
+        this.quantity = quantity;
+        this.reorderLevel = reorderLevel;
+    }
+
+    //return product, quantity, reorderLevel
+    public Product getProduct() {
+        return product;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public int getReorderLevel() {
+        return reorderLevel;
+    }
+
+    public boolean addStock(int amount) {
+        //If the amount is not zero then the amount gets added to quantity.
+        if (amount > 0) {
+            quantity += amount;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeStock(int amount) {
+        //if the amount is greater than zero and is less than or equal to quantity subtract amount off quantity.
+        if (amount > 0 && amount <= quantity) {
+            quantity -= amount;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean needsReorder() {
+        return quantity <= reorderLevel;
+    }
+}
+
+
+package inventory.service;
+
+import inventory.model.InventoryItem;
+import inventory.model.Product;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Warehouse {
+
+    private String name;
+    private List<InventoryItem> inventory;
+
+    public Warehouse(String name) {
+        this.name = name;
+        this.inventory = new ArrayList<>();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public List<InventoryItem> getInventory() {
+        return Collections.unmodifiableList(inventory);
+    }
+
+    public boolean addProduct(Product product, int quantity, int reorderLevel) {
+        //If the variables are empty then return false, an edge case.
+        if (product == null || quantity < 0 || reorderLevel < 0) {
+            return false;
+        }
+
+        if (findItem(product.getProductId()) != null) {
+            return false;
+        }
+
+        InventoryItem item = new InventoryItem(product, quantity, reorderLevel);
+        inventory.add(item);
+        return true;
+    }
+
+    public InventoryItem findItem(String productId) {
+        //return the item.
+        for (InventoryItem item : inventory) {
+            if (item.getProduct().getProductId().equals(productId)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    public boolean addStock(String productId, int amount) {
+        InventoryItem item = findItem(productId);
+        //if there is no item then just return false.
+        if (item == null) {
+            return false;
+        }
+        //otherwise add it to stock.
+        return item.addStock(amount);
+    }
+
+    public boolean removeStock(String productId, int amount) {
+        InventoryItem item = findItem(productId);
+        if (item == null) {
+            return false;
+        }
+        //if the item is not null then remove it from stock.
+        return item.removeStock(amount);
+    }
+
+    public void displayInventory() {
+        //display everything.
+        for (InventoryItem item : inventory) {
+            Product p = item.getProduct();
+            System.out.println(
+                p.getName() + " - The Quantity: " + item.getQuantity()
+                + ", Reorder: " + item.getReorderLevel()
+                + ", Needs to be reordered? " + item.needsReorder()
+            );
+        }
+    }
+}
+
+package inventory.app;
+
+import inventory.model.Supplier;
+import inventory.model.Product;
+import inventory.service.Warehouse;
+
+public class InventoryDemo {
+
+    public static void main(String[] args) {
+        //the products/suppliers
+        Supplier s1 = new Supplier("S001", "supplier1", "contact@source.com");
+        Supplier s2 = new Supplier("S002", "supplier2", "support@source.com");
+
+        Product laptop = new Product("P100", "Laptop", 999.99, s1);
+        Product mouse = new Product("P200", "kindle", 24.99, s2);
+        Product keyboard = new Product("P300", "phone", 49.99, s2);
+
+        Warehouse warehouse = new Warehouse("Warehouse");
+
+        //add the products to warehouse
+        warehouse.addProduct(laptop, 10, 3);
+        warehouse.addProduct(mouse, 20, 5);
+        warehouse.addProduct(keyboard, 8, 4);
+
+        warehouse.addStock("P100", 5);
+
+        warehouse.removeStock("P200", 3);
+
+        warehouse.removeStock("P300", 5);
+
+        //remove products from warehouse
+        boolean success = warehouse.removeStock("P100", 100);
+        System.out.println("Attempt to remove 100 laptops: " + (success ? "Succeeded" : "Failed"));
+
+        //display the products in the warehouse
+        warehouse.displayInventory();
+    }
+}
+
